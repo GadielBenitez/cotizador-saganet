@@ -530,7 +530,9 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
     $('folio').value = pad(counter);
     guardar(snap);
     $('notas').value = '';
-    say('Cotizacion ' + folio + ' generada. Siguiente folio: ' + pad(counter) + '. Las notas se limpiaron.');
+    $('cnom').value = ''; $('ctel').value = ''; $('cdir').value = '';
+    items = []; render();
+    say('Cotizacion ' + folio + ' guardada en el historial. Formulario limpio, siguiente folio: ' + pad(counter) + '.');
   });
 
   $('print').addEventListener('click', function(){
