@@ -175,7 +175,7 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
 
   var $ = function(id){ return document.getElementById(id); };
   var items = [];
-  var demo = true;
+  var demo = false;
   var logoURL = null;
 
   var money = function(n){
@@ -521,13 +521,7 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
     setTimeout(function(){ document.title = prev; }, 800);
   });
 
-  items = [
-    {nombre:'Instalacion de antena y configuracion de enlace', precio:1200, cant:1},
-    {nombre:'Router WiFi 6 doble banda AX1800', precio:1450, cant:2},
-    {nombre:'Mensualidad plan 50 Mbps', precio:399, cant:1}
-  ];
   render();
-  say('Partidas de ejemplo cargadas. Usa "Vaciar tabla" para empezar la tuya.');
 })();
 </script>
 </body>
