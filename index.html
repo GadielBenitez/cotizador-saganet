@@ -368,19 +368,20 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
     doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(INK[0],INK[1],INK[2]);
     doc.text('COTIZACION', right, 20, {align:'right'});
 
-    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
-    doc.text('Folio', right - 26, 28, {align:'right'});
-    doc.text('Fecha', right - 26, 34, {align:'right'});
-    doc.text('Vigencia', right - 26, 40, {align:'right'});
+    var labX = 132;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+    doc.text('Folio', labX, 29, {align:'right'});
+    doc.text('Fecha', labX, 35.5, {align:'right'});
+    doc.text('Vigencia', labX, 42, {align:'right'});
 
-    doc.setFont('courier','bold'); doc.setTextColor(INK[0],INK[1],INK[2]);
-    doc.text(folio, right, 28, {align:'right'});
-    doc.setFont('helvetica','normal');
-    doc.text(fechaLarga(), right, 34, {align:'right'});
+    doc.setFont('courier','bold'); doc.setFontSize(10); doc.setTextColor(INK[0],INK[1],INK[2]);
+    doc.text(folio, right, 29, {align:'right'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    doc.text(fechaLarga(), right, 35.5, {align:'right'});
     var vig = ($('vig').value||'').trim();
-    doc.text(vig ? vig + ' dias' : '-', right, 40, {align:'right'});
+    doc.text(vig ? vig + ' dias' : '-', right, 42, {align:'right'});
 
-    var y = 55;
+    var y = 58;
     doc.setFontSize(9); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
     var emisor = [];
     if($('emp').value.trim())  emisor.push($('emp').value.trim());
@@ -399,7 +400,7 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
 
     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
     doc.text('CLIENTE', M, y);
-    y += 5.5;
+    y += 7;
     var cliente = [
       ['Nombre',    $('cnom').value.trim()],
       ['Telefono',  $('ctel').value.trim()],
@@ -411,55 +412,64 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
       doc.setTextColor(MUT[0],MUT[1],MUT[2]); doc.setFontSize(9);
       doc.text(p[0], M, y);
       doc.setTextColor(INK[0],INK[1],INK[2]); doc.setFontSize(10);
-      var t = doc.splitTextToSize(p[1], W - M*2 - 26);
-      doc.text(t, M + 26, y);
-      y += Math.max(t.length * 4.6, 5.6);
+      var t = doc.splitTextToSize(p[1], W - M*2 - 28);
+      doc.text(t, M + 28, y);
+      y += Math.max(t.length * 4.8, 6.4);
     });
-    y += 6;
+    y += 8;
 
-    var cx = { idx:M, nom:M+9, cant:M+112, pu:M+142, imp:right };
-    doc.setFillColor(243,246,249);
-    doc.rect(M, y - 5, W - M*2, 8, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
-    doc.text('#', cx.idx + 1, y);
-    doc.text('PRODUCTO / SERVICIO', cx.nom, y);
-    doc.text('CANT.', cx.cant + 14, y, {align:'right'});
-    doc.text('P. UNITARIO', cx.pu + 26, y, {align:'right'});
-    doc.text('IMPORTE', cx.imp, y, {align:'right'});
-    y += 4;
-    doc.setDrawColor(LINE[0],LINE[1],LINE[2]);
-    doc.line(M, y, right, y);
-    y += 6;
+    var cx = { idx:M + 1, nom:M + 9, nomW:80, cant:122, pu:156, imp:right };
+
+    function tableHead(){
+      doc.setFillColor(243,246,249);
+      doc.rect(M, y - 5.5, W - M*2, 9, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+      doc.text('#', cx.idx, y);
+      doc.text('PRODUCTO / SERVICIO', cx.nom, y);
+      doc.text('CANT.', cx.cant, y, {align:'right'});
+      doc.text('P. UNITARIO', cx.pu, y, {align:'right'});
+      doc.text('IMPORTE', cx.imp, y, {align:'right'});
+      y += 5;
+      doc.setDrawColor(LINE[0],LINE[1],LINE[2]); doc.setLineWidth(0.3);
+      doc.line(M, y, right, y);
+      y += 7;
+    }
+
+    tableHead();
 
     doc.setFont('helvetica','normal'); doc.setFontSize(10);
     items.forEach(function(it, i){
-      var nom = doc.splitTextToSize(it.nombre, 100);
-      var h = Math.max(nom.length * 4.8, 6);
-      if(y + h > 258){
+      var nom = doc.splitTextToSize(it.nombre, cx.nomW);
+      var h = Math.max(nom.length * 5, 6);
+
+      if(y + h > 252){
         doc.addPage();
-        y = 25;
-        doc.setFont('helvetica','normal'); doc.setFontSize(10);
+        y = 30;
+        tableHead();
       }
+
+      doc.setFont('helvetica','normal');
       doc.setTextColor(150,160,172); doc.setFontSize(9);
-      doc.text(String(i+1), cx.idx + 1, y);
+      doc.text(String(i+1), cx.idx, y);
+
       doc.setTextColor(INK[0],INK[1],INK[2]); doc.setFontSize(10);
       doc.text(nom, cx.nom, y);
-      doc.text(qty(it.cant), cx.cant + 14, y, {align:'right'});
-      doc.text(money(it.precio), cx.pu + 26, y, {align:'right'});
+      doc.text(qty(it.cant), cx.cant, y, {align:'right'});
+      doc.text(money(it.precio), cx.pu, y, {align:'right'});
       doc.setFont('helvetica','bold');
       doc.text(money(it.precio * it.cant), cx.imp, y, {align:'right'});
-      doc.setFont('helvetica','normal');
-      y += h + 2.5;
-      doc.setDrawColor(232,237,242);
-      doc.line(M, y - 2, right, y - 2);
+
+      y += h + 5;
+      doc.setDrawColor(234,239,244); doc.setLineWidth(0.25);
+      doc.line(M, y - 3.5, right, y - 3.5);
     });
 
-    y += 3;
+    y += 4;
     doc.setDrawColor(INK[0],INK[1],INK[2]); doc.setLineWidth(0.6);
-    doc.line(M + 100, y, right, y);
-    y += 8;
-    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
-    doc.text('TOTAL', M + 104, y);
+    doc.line(115, y, right, y);
+    y += 9;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+    doc.text('TOTAL', 115, y);
     doc.setFontSize(16); doc.setTextColor(INK[0],INK[1],INK[2]);
     doc.text(money(total()), right, y, {align:'right'});
 
