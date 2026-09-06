@@ -1,1 +1,526 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1a8ce8">
+<title>Cotizador SAGANET</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --ground:#f2f5f8; --surface:#ffffff; --surface-2:#f7f9fb;
+  --ink:#161e27; --muted:#5d6c7c; --faint:#8b98a6;
+  --line:#dce3ea; --line-strong:#c3ceda;
+  --accent:#1a8ce8; --accent-soft:#e8f3fd; --danger:#b8422e;
+  --radius:6px;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --disp:"Archivo","IBM Plex Sans",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#10151b; --surface:#181f27; --surface-2:#1e262f;
+    --ink:#e4ebf2; --muted:#9aa8b6; --faint:#71808f;
+    --line:#2a333d; --line-strong:#3a4653;
+    --accent:#4aa8f0; --accent-soft:#12293c; --danger:#e0785f;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#10151b; --surface:#181f27; --surface-2:#1e262f;
+  --ink:#e4ebf2; --muted:#9aa8b6; --faint:#71808f;
+  --line:#2a333d; --line-strong:#3a4653;
+  --accent:#4aa8f0; --accent-soft:#12293c; --danger:#e0785f;
+}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+img{max-width:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:960px;margin:0 auto;padding:28px 20px 64px;display:flex;flex-direction:column;gap:18px}
+.masthead{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center}
+#logo{width:160px;height:auto;display:block;border-radius:3px;background:#fff}
+.emisor{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 18px}
+.dato{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dato .k{font-family:var(--disp);font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.dato .v{font-size:13.5px;color:var(--ink);overflow-wrap:anywhere}
+.dato .v-strong{font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:.03em}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-family:var(--disp);font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+input,textarea{font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%;min-width:0}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+input.num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+textarea{resize:vertical;min-height:58px;line-height:1.45}
+section{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px 20px;display:flex;flex-direction:column;gap:14px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h2{font-family:var(--disp);font-size:12px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);margin:0}
+.hint{font-size:12px;color:var(--faint)}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px 16px}
+.adder{display:grid;grid-template-columns:minmax(0,1fr) 120px 90px auto;gap:10px;align-items:end;background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:5px;padding:12px 14px}
+.adder input{background:var(--surface)}
+button{font-family:var(--disp);font-weight:600;cursor:pointer;border-radius:4px;transition:filter .12s ease}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-add{background:var(--accent);color:#fff;border:1px solid var(--accent);padding:8px 18px;font-size:13px;letter-spacing:.02em;height:36px}
+.btn-add:hover{filter:brightness(1.08)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line-strong);padding:7px 14px;font-size:12px}
+.btn-ghost:hover{color:var(--ink);border-color:var(--muted)}
+.btn-main{background:var(--ink);color:var(--surface);border:1px solid var(--ink);padding:13px 30px;font-size:14px;letter-spacing:.03em}
+.btn-main:hover{filter:brightness(1.25)}
+.btn-del{background:none;border:none;color:var(--faint);font-size:16px;line-height:1;padding:3px 7px;font-family:var(--sans)}
+.btn-del:hover{color:var(--danger)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:5px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-variant-numeric:tabular-nums}
+th{font-family:var(--disp);font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);text-align:left;padding:9px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+.r{text-align:right}.c{text-align:center}
+td.n,th.n{font-family:var(--mono);font-size:13px}
+td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
+.empty td{color:var(--faint);text-align:center;padding:26px 12px;font-size:13px}
+.example-flag{display:inline-block;font-family:var(--disp);font-size:9px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:2px 6px;border-radius:3px;margin-left:8px;vertical-align:middle}
+.totalbar{display:flex;justify-content:space-between;align-items:baseline;gap:16px;border-top:2px solid var(--ink);padding-top:12px;margin-top:2px}
+.totalbar .lbl{font-family:var(--disp);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.totalbar .val{font-family:var(--mono);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums}
+.count{font-size:12px;color:var(--faint);font-family:var(--mono)}
+.actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.status{font-size:12px;color:var(--muted);margin-right:auto}
+@media (max-width:640px){
+  .masthead{grid-template-columns:1fr;gap:16px}
+  #logo{width:140px}
+  .adder{grid-template-columns:1fr 1fr}
+  .adder .span2{grid-column:1 / -1}
+  .btn-add{grid-column:1 / -1;width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
 
+  <header class="masthead">
+    <canvas id="logo" width="1280" height="1040" role="img" aria-label="SAGANET"></canvas>
+    <div class="emisor">
+      <div class="dato"><span class="k">Empresa</span><span class="v v-strong">SAGANET</span></div>
+      <div class="dato"><span class="k">Telefonos</span><span class="v">7721179526 / 7712455513</span></div>
+      <div class="dato"><span class="k">Correo</span><span class="v">saganet.sg@gmail.com</span></div>
+      <div class="dato"><span class="k">Direccion</span><span class="v">San Antonio Zaragoza, Centro, 42650</span></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><h2>Datos del cliente</h2></div>
+    <div class="grid-3">
+      <div class="field"><label for="cnom">Nombre del cliente</label><input id="cnom" placeholder="Nombre completo o razon social"></div>
+      <div class="field"><label for="ctel">Telefono</label><input id="ctel" placeholder="Telefono de contacto"></div>
+      <div class="field"><label for="cdir">Direccion</label><input id="cdir" placeholder="Domicilio de instalacion"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Datos de la cotizacion</h2><span class="hint">El folio avanza solo cada vez que generas un PDF.</span></div>
+    <div class="grid-3">
+      <div class="field"><label for="folio">Folio</label><input id="folio" class="num"></div>
+      <div class="field"><label for="fecha">Fecha</label><input id="fecha" type="date"></div>
+      <div class="field"><label for="vig">Vigencia (dias)</label><input id="vig" class="num" value="15"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Productos y servicios</h2>
+      <button type="button" class="btn-ghost" id="clear">Vaciar tabla</button>
+    </div>
+
+    <form class="adder" id="form">
+      <div class="field span2"><label for="pnom">Producto o servicio</label><input id="pnom" placeholder="Ej. Instalacion de antena" autocomplete="off"></div>
+      <div class="field"><label for="ppre">Precio unitario</label><input id="ppre" class="num" inputmode="decimal" placeholder="0.00"></div>
+      <div class="field"><label for="pcan">Cantidad</label><input id="pcan" class="num" inputmode="decimal" value="1"></div>
+      <button type="submit" class="btn-add">Agregar</button>
+    </form>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th>Producto / servicio</th>
+            <th class="c n">Cant.</th>
+            <th class="r n">P. unitario</th>
+            <th class="r n">Importe</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="totalbar">
+      <span class="lbl">Total <span class="count" id="count"></span></span>
+      <span class="val" id="total">$0.00</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Notas</h2></div>
+    <textarea id="notas" placeholder="Condiciones, tiempos de instalacion, forma de pago..."></textarea>
+    <div class="actions">
+      <span class="status" id="status"></span>
+      <button type="button" class="btn-ghost" id="print">Imprimir</button>
+      <button type="button" class="btn-main" id="go">Hacer cotizacion</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var $ = function(id){ return document.getElementById(id); };
+  var items = [];
+  var demo = false;
+  var logoURL = null;
+
+  var money = function(n){
+    return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(isFinite(n)?n:0);
+  };
+  var qty = function(n){ return (Math.round(n*1000)/1000).toString(); };
+
+  var cv = $('logo');
+  var ctx = cv.getContext('2d');
+
+  function drawVector(){
+    var W = 1280, H = 1040;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0,0,W,H);
+
+    ctx.save();
+    ctx.translate(W/2, H/2 + 20);
+    ctx.rotate(-11 * Math.PI/180);
+    ctx.strokeStyle = '#9b9b9b';
+    ctx.lineWidth = 20;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 560, 340, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(90, 350, 1100, 300);
+
+    ctx.save();
+    ctx.translate(910, 360);
+    ctx.strokeStyle = '#1a8ce8';
+    ctx.lineCap = 'round';
+    var arcs = [[60,26],[125,30],[190,34]];
+    for(var i=0;i<arcs.length;i++){
+      ctx.lineWidth = arcs[i][1];
+      ctx.beginPath();
+      ctx.arc(0, 0, arcs[i][0], -Math.PI*0.97, -Math.PI*0.06);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#1a8ce8';
+    ctx.beginPath();
+    ctx.arc(0, 0, 20, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#1a8ce8';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '800 250px Archivo, Impact, "Arial Black", sans-serif';
+    ctx.fillText('SAGANET', W/2, 570);
+
+    ctx.fillRect(110, 592, 1060, 18);
+
+    ctx.fillStyle = '#111111';
+    ctx.font = '500 58px "IBM Plex Sans", Arial, sans-serif';
+    ctx.fillText('La mejor red de conectividad wifi de la region', W/2, 665);
+
+    ctx.strokeStyle = '#1a8ce8';
+    ctx.lineWidth = 16;
+    ctx.strokeRect(8, 8, W-16, H-16);
+
+    logoURL = cv.toDataURL('image/jpeg', 0.92);
+  }
+
+  function useImage(img){
+    cv.width = img.naturalWidth;
+    cv.height = img.naturalHeight;
+    ctx.drawImage(img, 0, 0);
+    try{ logoURL = cv.toDataURL('image/jpeg', 0.92); }catch(e){ logoURL = null; }
+  }
+
+  (function loadLogo(){
+    var img = new Image();
+    img.onload = function(){ useImage(img); };
+    img.onerror = function(){
+      if(document.fonts && document.fonts.ready){
+        document.fonts.ready.then(drawVector).catch(drawVector);
+        setTimeout(drawVector, 1200);
+      } else {
+        drawVector();
+      }
+    };
+    img.src = 'logo.jpg';
+  })();
+
+  var store = {
+    get:function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:v; }catch(e){ return d; } },
+    set:function(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  };
+
+  /* Datos fijos de la empresa */
+  var EMPRESA = {
+    nombre: 'SAGANET',
+    tels:   '7721179526 / 7712455513',
+    correo: 'saganet.sg@gmail.com',
+    dir:    'San Antonio Zaragoza, Centro, 42650'
+  };
+
+  function pad(n){ return String(n).padStart(4,'0'); }
+  var counter = parseInt(store.get('sg_folio','1'),10);
+  if(!isFinite(counter) || counter < 1) counter = 1;
+  $('folio').value = pad(counter);
+
+  var hoy = new Date();
+  $('fecha').value = hoy.getFullYear()+'-'+pad(hoy.getMonth()+1).slice(-2)+'-'+pad(hoy.getDate()).slice(-2);
+
+  function fechaLarga(){
+    var v = $('fecha').value;
+    var p = v ? v.split('-') : [];
+    var d = p.length===3 ? new Date(+p[0], +p[1]-1, +p[2]) : new Date();
+    var m = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return d.getDate()+' de '+m[d.getMonth()]+' de '+d.getFullYear();
+  }
+
+  function total(){ return items.reduce(function(s,i){ return s + i.precio*i.cant; }, 0); }
+
+  function render(){
+    var tb = $('tbody');
+    tb.innerHTML = '';
+    if(!items.length){
+      var tr = document.createElement('tr');
+      tr.className = 'empty';
+      var td = document.createElement('td');
+      td.colSpan = 6;
+      td.textContent = 'Aun no hay partidas. Agrega la primera arriba.';
+      tr.appendChild(td); tb.appendChild(tr);
+    } else {
+      items.forEach(function(it, i){
+        var tr = document.createElement('tr');
+        var c0 = document.createElement('td'); c0.className='idx'; c0.textContent = i+1;
+        var c1 = document.createElement('td'); c1.textContent = it.nombre;
+        if(demo){
+          var flag = document.createElement('span');
+          flag.className='example-flag'; flag.textContent='ejemplo';
+          c1.appendChild(flag);
+        }
+        var c2 = document.createElement('td'); c2.className='c n'; c2.textContent = qty(it.cant);
+        var c3 = document.createElement('td'); c3.className='r n'; c3.textContent = money(it.precio);
+        var c4 = document.createElement('td'); c4.className='r n'; c4.textContent = money(it.precio*it.cant);
+        var c5 = document.createElement('td'); c5.className='c';
+        var b = document.createElement('button');
+        b.type='button'; b.className='btn-del'; b.textContent='x';
+        b.setAttribute('aria-label','Quitar '+it.nombre);
+        b.addEventListener('click', function(){ items.splice(i,1); demo=false; render(); });
+        c5.appendChild(b);
+        [c0,c1,c2,c3,c4,c5].forEach(function(c){ tr.appendChild(c); });
+        tb.appendChild(tr);
+      });
+    }
+    $('total').textContent = money(total());
+    $('count').textContent = items.length ? '- '+items.length+(items.length===1?' partida':' partidas') : '';
+  }
+
+  function say(msg){ $('status').textContent = msg; }
+
+  $('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var nombre = $('pnom').value.trim();
+    var precio = parseFloat($('ppre').value.replace(/[^0-9.]/g,''));
+    var cant   = parseFloat($('pcan').value.replace(/[^0-9.]/g,''));
+    if(!nombre){ say('Escribe el nombre del producto o servicio.'); $('pnom').focus(); return; }
+    if(!isFinite(precio) || precio < 0){ say('El precio unitario debe ser un numero.'); $('ppre').focus(); return; }
+    if(!isFinite(cant) || cant <= 0){ say('La cantidad debe ser mayor que cero.'); $('pcan').focus(); return; }
+    if(demo){ items = []; demo = false; }
+    items.push({nombre:nombre, precio:precio, cant:cant});
+    $('pnom').value=''; $('ppre').value=''; $('pcan').value='1';
+    $('pnom').focus();
+    say('');
+    render();
+  });
+
+  $('clear').addEventListener('click', function(){
+    items = []; demo = false; render(); say('Tabla vacia.');
+  });
+
+  function buildPDF(folio){
+    var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if(!jsPDF) return null;
+
+    var doc = new jsPDF({unit:'mm', format:'a4'});
+    var W = 210, M = 15, right = W - M;
+    var INK = [22,30,39], MUT = [93,108,124], LINE = [200,210,220], ACC = [26,140,232];
+
+    if(logoURL){
+      try{ doc.addImage(logoURL, 'JPEG', M, 12, 46, 37.4); }catch(e){}
+    }
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(INK[0],INK[1],INK[2]);
+    doc.text('COTIZACION', right, 20, {align:'right'});
+
+    var labX = 132;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+    doc.text('Folio', labX, 29, {align:'right'});
+    doc.text('Fecha', labX, 35.5, {align:'right'});
+    doc.text('Vigencia', labX, 42, {align:'right'});
+
+    doc.setFont('courier','bold'); doc.setFontSize(10); doc.setTextColor(INK[0],INK[1],INK[2]);
+    doc.text(folio, right, 29, {align:'right'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    doc.text(fechaLarga(), right, 35.5, {align:'right'});
+    var vig = ($('vig').value||'').trim();
+    doc.text(vig ? vig + ' dias' : '-', right, 42, {align:'right'});
+
+    var y = 58;
+    doc.setFontSize(9); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+    var emisor = [EMPRESA.nombre, 'Tel. ' + EMPRESA.tels, EMPRESA.correo, EMPRESA.dir];
+    var lineas = doc.splitTextToSize(emisor.join('  -  '), W - M*2);
+    doc.text(lineas, M, y);
+    y += lineas.length * 4.2;
+    y += 3;
+    doc.setDrawColor(LINE[0],LINE[1],LINE[2]); doc.setLineWidth(0.3);
+    doc.line(M, y, right, y);
+    y += 9;
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+    doc.text('CLIENTE', M, y);
+    y += 7;
+    var cliente = [
+      ['Nombre',    $('cnom').value.trim()],
+      ['Telefono',  $('ctel').value.trim()],
+      ['Direccion', $('cdir').value.trim()]
+    ];
+    cliente.forEach(function(p){
+      if(!p[1]) return;
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(MUT[0],MUT[1],MUT[2]); doc.setFontSize(9);
+      doc.text(p[0], M, y);
+      doc.setTextColor(INK[0],INK[1],INK[2]); doc.setFontSize(10);
+      var t = doc.splitTextToSize(p[1], W - M*2 - 28);
+      doc.text(t, M + 28, y);
+      y += Math.max(t.length * 4.8, 6.4);
+    });
+    y += 8;
+
+    var cx = { idx:M + 1, nom:M + 9, nomW:80, cant:122, pu:156, imp:right };
+
+    function tableHead(){
+      doc.setFillColor(243,246,249);
+      doc.rect(M, y - 5.5, W - M*2, 9, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+      doc.text('#', cx.idx, y);
+      doc.text('PRODUCTO / SERVICIO', cx.nom, y);
+      doc.text('CANT.', cx.cant, y, {align:'right'});
+      doc.text('P. UNITARIO', cx.pu, y, {align:'right'});
+      doc.text('IMPORTE', cx.imp, y, {align:'right'});
+      y += 5;
+      doc.setDrawColor(LINE[0],LINE[1],LINE[2]); doc.setLineWidth(0.3);
+      doc.line(M, y, right, y);
+      y += 7;
+    }
+
+    tableHead();
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    items.forEach(function(it, i){
+      var nom = doc.splitTextToSize(it.nombre, cx.nomW);
+      var h = Math.max(nom.length * 5, 6);
+
+      if(y + h > 252){
+        doc.addPage();
+        y = 30;
+        tableHead();
+      }
+
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(150,160,172); doc.setFontSize(9);
+      doc.text(String(i+1), cx.idx, y);
+
+      doc.setTextColor(INK[0],INK[1],INK[2]); doc.setFontSize(10);
+      doc.text(nom, cx.nom, y);
+      doc.text(qty(it.cant), cx.cant, y, {align:'right'});
+      doc.text(money(it.precio), cx.pu, y, {align:'right'});
+      doc.setFont('helvetica','bold');
+      doc.text(money(it.precio * it.cant), cx.imp, y, {align:'right'});
+
+      y += h + 5;
+      doc.setDrawColor(234,239,244); doc.setLineWidth(0.25);
+      doc.line(M, y - 3.5, right, y - 3.5);
+    });
+
+    y += 4;
+    doc.setDrawColor(INK[0],INK[1],INK[2]); doc.setLineWidth(0.6);
+    doc.line(115, y, right, y);
+    y += 9;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+    doc.text('TOTAL', 115, y);
+    doc.setFontSize(16); doc.setTextColor(INK[0],INK[1],INK[2]);
+    doc.text(money(total()), right, y, {align:'right'});
+
+    var nt = $('notas').value.trim();
+    if(nt){
+      y += 14;
+      if(y > 250){ doc.addPage(); y = 25; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+      doc.text('NOTAS', M, y);
+      y += 5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      doc.text(doc.splitTextToSize(nt, W - M*2), M, y);
+    }
+
+    var pages = doc.getNumberOfPages();
+    for(var p = 1; p <= pages; p++){
+      doc.setPage(p);
+      doc.setDrawColor(ACC[0],ACC[1],ACC[2]); doc.setLineWidth(0.8);
+      doc.line(M, 283, right, 283);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(MUT[0],MUT[1],MUT[2]);
+      doc.text(EMPRESA.nombre + ' - La mejor red de conectividad wifi de la region', M, 288);
+      doc.text('Folio ' + folio + '   -   Pagina ' + p + ' de ' + pages, right, 288, {align:'right'});
+    }
+    return doc;
+  }
+
+  $('go').addEventListener('click', function(){
+    if(!items.length){ say('Agrega al menos una partida antes de generar el PDF.'); return; }
+    if(demo){ say('Estas partidas son de ejemplo: reemplazalas por las reales o vacia la tabla.'); }
+    var folio = ($('folio').value || '').trim() || pad(counter);
+    var doc = buildPDF(folio);
+    if(!doc){
+      say('No se pudo cargar el generador de PDF. Usa Imprimir y elige "Guardar como PDF".');
+      return;
+    }
+    doc.save('Cotizacion-' + folio.replace(/[^0-9A-Za-z_-]/g,'') + '.pdf');
+    var n = parseInt(folio.replace(/[^0-9]/g,''), 10);
+    counter = (isFinite(n) ? n : counter) + 1;
+    store.set('sg_folio', String(counter));
+    $('folio').value = pad(counter);
+    $('notas').value = '';
+    say('Cotizacion ' + folio + ' generada. Siguiente folio: ' + pad(counter) + '. Las notas se limpiaron.');
+  });
+
+  $('print').addEventListener('click', function(){
+    var folio = ($('folio').value || '').trim();
+    var prev = document.title;
+    document.title = 'Cotizacion-' + folio;
+    window.print();
+    setTimeout(function(){ document.title = prev; }, 800);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
