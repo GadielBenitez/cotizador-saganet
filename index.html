@@ -85,6 +85,18 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
 .count{font-size:12px;color:var(--faint);font-family:var(--mono)}
 .actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
 .status{font-size:12px;color:var(--muted);margin-right:auto}
+.histlist{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.hrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;background:var(--surface);padding:11px 14px}
+.hcol{display:flex;flex-direction:column;gap:1px;min-width:0}
+.hcol.hid{width:96px;flex:none}
+.hcol.hcli{flex:1 1 170px}
+.hfolio{font-family:var(--mono);font-size:13px;font-weight:600}
+.hmeta{font-size:11px;color:var(--faint)}
+.hnom{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.htotal{font-family:var(--mono);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:auto}
+.hacts{display:flex;gap:6px;align-items:center}
+.hacts .btn-ghost{padding:5px 11px;font-size:11px}
+.hvacio{margin:0;padding:24px 14px;text-align:center;color:var(--faint);font-size:13px;background:var(--surface)}
 @media (max-width:640px){
   .masthead{grid-template-columns:1fr;gap:16px}
   #logo{width:140px}
@@ -169,6 +181,14 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
       <button type="button" class="btn-ghost" id="print">Imprimir</button>
       <button type="button" class="btn-main" id="go">Hacer cotizacion</button>
     </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>Historial de cotizaciones</h2>
+      <span class="hint">Se guardan solas al generar el PDF y se conservan 6 meses. <span class="count" id="histCount"></span></span>
+    </div>
+    <div class="histlist" id="hist"></div>
   </section>
 
 </div>
@@ -497,6 +517,7 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
     if(!items.length){ say('Agrega al menos una partida antes de generar el PDF.'); return; }
     if(demo){ say('Estas partidas son de ejemplo: reemplazalas por las reales o vacia la tabla.'); }
     var folio = ($('folio').value || '').trim() || pad(counter);
+    var snap = snapshot(folio);
     var doc = buildPDF(folio);
     if(!doc){
       say('No se pudo cargar el generador de PDF. Usa Imprimir y elige "Guardar como PDF".');
@@ -507,6 +528,7 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
     counter = (isFinite(n) ? n : counter) + 1;
     store.set('sg_folio', String(counter));
     $('folio').value = pad(counter);
+    guardar(snap);
     $('notas').value = '';
     say('Cotizacion ' + folio + ' generada. Siguiente folio: ' + pad(counter) + '. Las notas se limpiaron.');
   });
@@ -519,7 +541,138 @@ td.idx{font-family:var(--mono);color:var(--faint);font-size:12px;width:34px}
     setTimeout(function(){ document.title = prev; }, 800);
   });
 
+  /* ================= historial (6 meses) ================= */
+  var HIST_KEY = 'sg_hist';
+  var SEIS_MESES = 1000 * 60 * 60 * 24 * 183;
+
+  function leerHist(){
+    var arr;
+    try{ arr = JSON.parse(store.get(HIST_KEY, '[]')); }catch(e){ arr = []; }
+    if(!Array.isArray(arr)) arr = [];
+    var corte = Date.now() - SEIS_MESES;
+    var vivos = arr.filter(function(c){ return c && c.ts && c.ts >= corte && Array.isArray(c.items); });
+    if(vivos.length !== arr.length) store.set(HIST_KEY, JSON.stringify(vivos));
+    return vivos.sort(function(a,b){ return b.ts - a.ts; });
+  }
+
+  function snapshot(folio){
+    return {
+      folio: folio,
+      fecha: $('fecha').value,
+      vig:   ($('vig').value || '').trim(),
+      cnom:  $('cnom').value.trim(),
+      ctel:  $('ctel').value.trim(),
+      cdir:  $('cdir').value.trim(),
+      notas: $('notas').value.trim(),
+      items: items.map(function(i){ return {nombre:i.nombre, precio:i.precio, cant:i.cant}; }),
+      total: total(),
+      ts:    Date.now()
+    };
+  }
+
+  function guardar(cot){
+    var arr = leerHist();
+    arr.unshift(cot);
+    store.set(HIST_KEY, JSON.stringify(arr.slice(0, 400)));
+    pintarHist();
+  }
+
+  function cargar(cot){
+    $('folio').value = cot.folio;
+    $('fecha').value = cot.fecha;
+    $('vig').value   = cot.vig;
+    $('cnom').value  = cot.cnom;
+    $('ctel').value  = cot.ctel;
+    $('cdir').value  = cot.cdir;
+    $('notas').value = cot.notas;
+    items = cot.items.map(function(i){ return {nombre:i.nombre, precio:i.precio, cant:i.cant}; });
+    render();
+  }
+
+  function fechaCorta(iso){
+    var p = (iso || '').split('-');
+    if(p.length !== 3) return iso || '';
+    var m = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return (+p[2]) + ' ' + m[(+p[1]) - 1] + ' ' + p[0];
+  }
+
+  function rehacerPDF(cot){
+    var actual = snapshot(($('folio').value || '').trim());
+    cargar(cot);
+    var doc = buildPDF(cot.folio);
+    if(doc) doc.save('Cotizacion-' + String(cot.folio).replace(/[^0-9A-Za-z_-]/g,'') + '.pdf');
+    cargar(actual);
+    say(doc ? 'PDF de la cotizacion ' + cot.folio + ' descargado otra vez.' : 'No se pudo generar el PDF.');
+  }
+
+  function borrar(ts){
+    var arr = leerHist().filter(function(c){ return c.ts !== ts; });
+    store.set(HIST_KEY, JSON.stringify(arr));
+    pintarHist();
+    say('Cotizacion eliminada del historial.');
+  }
+
+  function pintarHist(){
+    var lista = leerHist();
+    var cont = $('hist');
+    cont.innerHTML = '';
+    $('histCount').textContent = lista.length ? '- ' + lista.length + (lista.length === 1 ? ' guardada' : ' guardadas') : '';
+
+    if(!lista.length){
+      var v = document.createElement('p');
+      v.className = 'hvacio';
+      v.textContent = 'Todavia no hay cotizaciones guardadas.';
+      cont.appendChild(v);
+      return;
+    }
+
+    lista.forEach(function(cot){
+      var row = document.createElement('div');
+      row.className = 'hrow';
+
+      var a = document.createElement('div'); a.className = 'hcol hid';
+      var f = document.createElement('span'); f.className = 'hfolio'; f.textContent = cot.folio;
+      var d = document.createElement('span'); d.className = 'hmeta'; d.textContent = fechaCorta(cot.fecha);
+      a.appendChild(f); a.appendChild(d);
+
+      var b = document.createElement('div'); b.className = 'hcol hcli';
+      var n = document.createElement('span'); n.className = 'hnom'; n.textContent = cot.cnom || 'Sin nombre de cliente';
+      var q = document.createElement('span'); q.className = 'hmeta';
+      q.textContent = cot.items.length + (cot.items.length === 1 ? ' partida' : ' partidas');
+      b.appendChild(n); b.appendChild(q);
+
+      var t = document.createElement('span'); t.className = 'htotal'; t.textContent = money(cot.total);
+
+      var acts = document.createElement('div'); acts.className = 'hacts';
+
+      var bp = document.createElement('button');
+      bp.type = 'button'; bp.className = 'btn-ghost'; bp.textContent = 'PDF';
+      bp.setAttribute('aria-label', 'Descargar de nuevo la cotizacion ' + cot.folio);
+      bp.addEventListener('click', function(){ rehacerPDF(cot); });
+
+      var bc = document.createElement('button');
+      bc.type = 'button'; bc.className = 'btn-ghost'; bc.textContent = 'Abrir';
+      bc.setAttribute('aria-label', 'Abrir la cotizacion ' + cot.folio + ' en el formulario');
+      bc.addEventListener('click', function(){
+        cargar(cot);
+        say('Cotizacion ' + cot.folio + ' cargada arriba. Si generas el PDF se guardara como una nueva.');
+        window.scrollTo({top:0, behavior:'smooth'});
+      });
+
+      var bx = document.createElement('button');
+      bx.type = 'button'; bx.className = 'btn-del'; bx.textContent = 'x';
+      bx.setAttribute('aria-label', 'Borrar del historial la cotizacion ' + cot.folio);
+      bx.addEventListener('click', function(){ borrar(cot.ts); });
+
+      acts.appendChild(bp); acts.appendChild(bc); acts.appendChild(bx);
+
+      row.appendChild(a); row.appendChild(b); row.appendChild(t); row.appendChild(acts);
+      cont.appendChild(row);
+    });
+  }
+
   render();
+  pintarHist();
 })();
 </script>
 </body>
